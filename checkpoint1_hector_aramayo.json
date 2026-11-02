@@ -1,0 +1,182 @@
+{
+  "name": "Pre-entrega1",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.5,
+      "position": [
+        -800,
+        -400
+      ],
+      "id": "79e92725-f3b7-41b6-976f-e51b029523e7",
+      "name": "When chat message received",
+      "webhookId": "e5375dd0-8848-4bda-bb26-d37e35e32d24"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o",
+          "mode": "list",
+          "cachedResultName": "gpt-4o"
+        },
+        "responsesApiEnabled": false,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        -640,
+        -144
+      ],
+      "id": "70afeef5-ab53-412e-9ae4-db3664c9754f",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": null,
+          "name": "",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "# ROL\nEres el Asistente de Operaciones Comerciales de Refrescos del Oeste, distribuidora mayorista de bebidas gaseosas. Atiendes consultas internas de los preventistas.\n\n# ÁMBITO\n- Verificar disponibilidad de stock por SKU, marca y presentación.\n- Informar precio de lista y fecha de próxima reposición.\n- Evaluar si un pedido puede cubrirse con el stock actual.\nFuera de este ámbito (cobranzas, reclamos, rutas de reparto, recursos humanos) no tienes información ni autoridad.\n\n# OBJETIVO DE LA SESIÓN\nEntregar al preventista una recomendación clara y accionable sobre la viabilidad de su pedido, basada únicamente en datos verificados de la herramienta Consulta_Inventario.\n\n# REGLAS Y ESCALAMIENTO\n1. Nunca inventes cifras de stock, precios ni fechas. Si la herramienta no devuelve datos, responde: \"No tengo información verificada sobre ese producto\".\n2. Consulta la herramienta como máximo 3 veces por solicitud.\n3. NO apruebes descuentos, NO modifiques pedidos, NO prometas fechas de entrega y NO compartas información de otros clientes.\n4. Si el pedido supera las 100 cajas o el stock es insuficiente en más de un producto, indica que el caso debe ser derivado a un supervisor humano.\n5. Si la consulta está fuera de tu ámbito, indícalo y sugiere contactar al área correspondiente.\n\n# FORMATO DE RESPUESTA\n1. Resumen del pedido\n2. Disponibilidad por producto\n3. Recomendación\n4. Alertas u observaciones\n\n# ESTILO\nTono profesional, directo y neutro. Usa lenguaje formal sin desdoblamientos ni formas inclusivas alternativas (por ejemplo: \"el cliente\", \"los clientes\", \"el preventista\").",
+          "maxIterations": 8,
+          "returnIntermediateSteps": true
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -544,
+        -400
+      ],
+      "id": "e460cd73-967f-40d8-be85-40c359ce3acd",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Consulta_Inventario: lee la hoja de inventario de Refrescos del Oeste (columnas: SKU, Producto, Presentacion, Stock_Cajas, Precio_Lista, Proxima_Reposicion). Actívala SIEMPRE que necesites conocer el stock disponible de un producto, su precio de lista o la fecha de próxima reposición, y en particular cuando el usuario mencione un SKU, una marca (Coca-Cola, Sprite, Fanta, Pepsi, etc.) o un tamaño de envase (por ejemplo 2.25L o 500ml) o pregunte si un pedido puede cubrirse. Úsala para comparar la cantidad pedida contra Stock_Cajas antes de dar cualquier recomendación. NO la uses para consultar historial de pagos, datos de clientes ni rutas de entrega, y no la uses para modificar datos: es solo de lectura. Si el producto no aparece en la hoja, informa que no existe en catálogo en lugar de estimar un valor. Si la consulta del usuario no menciona ningún producto, pide aclaración en lugar de activar la herramienta.",
+        "documentId": {
+          "__rl": true,
+          "value": "1QUoD94bKYC4mtKijHy3K9LVKrgNapBSCCxFO2Qv7qjE",
+          "mode": "list",
+          "cachedResultName": "inventario",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1QUoD94bKYC4mtKijHy3K9LVKrgNapBSCCxFO2Qv7qjE/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Inventario",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1QUoD94bKYC4mtKijHy3K9LVKrgNapBSCCxFO2Qv7qjE/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [
+        -400,
+        -192
+      ],
+      "id": "48f612f1-1a59-4842-9ca9-635e34f55d31",
+      "name": "Consulta_Inventario",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "QulZjHtVqmcq4AJR",
+          "name": "Google Sheets account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "hector.a.automation@gmail.com",
+        "subject": "Reporte de observabilidad - Agente Refrescos del Oeste",
+        "message": "=<h3>REPORTE AUTOMÁTICO DE SUPERVISIÓN</h3>\n\n<b>Consulta del usuario:</b><br>\n{{ $('When chat message received').item.json.chatInput }}<br><br>\n\n<b>Respuesta final del agente:</b><br>\n{{ $json.output.replace(/\\*\\*(.*?)\\*\\*/g, '<b>$1</b>').replace(/\\n/g, '<br>') }}<br><br>\n\n<b>Herramientas ejecutadas (Execution Log):</b><br>\n{{ $json.intermediateSteps.map(s => '• ' + s.action.tool + ': ' + s.action.log).join('<br>') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        -272,
+        -400
+      ],
+      "id": "c26b58a3-7102-4218-bd07-ef1de567047d",
+      "name": "Send a message",
+      "webhookId": "6696a2b6-8f75-4ec4-9075-e71bef83b5f8",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "PiiZdVrJJwYd4bl7",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consulta_Inventario": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true
+  },
+  "versionId": "80aedbf0-4ae8-4525-a2f1-836dbbdf5cbe",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "fce2db630bdc1a6d79a5ab34d6159e4d0ac86d87b7ac66c116202552260790b8"
+  },
+  "nodeGroups": [],
+  "id": "yPzdFRNXZZ5vaAfN",
+  "tags": []
+}
